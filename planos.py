@@ -100,62 +100,64 @@ def cortar_string(string):
     result_string = ' '.join(palavras)
     return result_string
 
+prcnt_width = 80
+max_width_str = f"max-width: {prcnt_width}%;"
+st.markdown(f""" 
+            <style> 
+            .reportview-container .main .block-container{{{max_width_str}}}
+            </style>    
+            """,
+            unsafe_allow_html=True)
 
 #
 import os
 
 path = os.path.dirname(__file__)
 my_path = path + '/pages/files/'
-
-
-@st.cache_data
-def carregar_equipamentos():
-    try:
-        if 'SAP_EQP' not in st.session_state:
-            SAP_EQP = pd.read_excel(my_path + 'SAP_EQP_05-04.xlsx', sheet_name='Sheet1', usecols="A:H", skiprows=0, dtype=str)
-            SAP_EQP['CONCAT CENTRO_DESC'] = SAP_EQP["Centro planejamento"].map(str, na_action=None) + SAP_EQP[
-                "Denominação do objeto técnico"].map(str, na_action='ignore')
-            SAP_EQP = pd.DataFrame(SAP_EQP)
-            st.session_state.SAP_EQP = SAP_EQP
-        SAP_EQP = st.session_state['SAP_EQP']
-    except:
-        pass
-
-# Função para carregar Task Lists SAP
-@st.cache_data
-def carregar_task_lists():
-    try:
-        if 'SAP_TL' not in st.session_state:
-            SAP_TL = pd.read_excel(my_path + 'SAP_TL_04-04.xlsx', sheet_name='Sheet1', usecols="A:N", skiprows=0, dtype=str)
-            SAP_TL['CONCAT CENTRO_DESC'] = SAP_TL["Centro planejamento"].map(str, na_action=None) + SAP_TL["Descrição"].map(str,na_action='ignore')
-            SAP_TL = pd.DataFrame(SAP_TL)
-            st.session_state.SAP_TL = SAP_TL
-        SAP_TL = st.session_state['SAP_TL']
-    except:
-        pass
-
-# Função para carregar Planos SAP
-@st.cache_data
-def carregar_planos():
-    try:
-        if 'SAP_PMI' not in st.session_state:
-            SAP_PMI = pd.read_excel(my_path + 'SAP_PMI_08-04_.xlsx', sheet_name='Sheet1', skiprows=0, dtype=str)
-            SAP_PMI['CONCAT CENTRO_DESC'] = SAP_PMI["Planning Plant"].map(str, na_action=None) + SAP_PMI[
-                "Maintenance Plan Desc"].map(str, na_action='ignore')
-            SAP_PMI['CONCAT TL_EQP'] = SAP_PMI["Group"].map(str, na_action=None) + SAP_PMI["Equipment"].map(str,na_action='ignore')
-
+uploaded_file0 = st.sidebar.file_uploader("Carregar Dados Chave",
+                                         help="Carregar arquivo com dados necessários do SAP. Caso precise recarregá-lo, atualize a página. Este arquivo deve ser continuamente atualizado conforme novos dados sejam inseridos no SAP"
+                                         )
+if uploaded_file0 is not None:
+    if 'SAP_CTPM' not in st.session_state:
+        with st.spinner('Carregando Lista de Equipamentos...'):
+            SAP_EQP_N6 = pd.read_excel(uploaded_file0, sheet_name="EQP", skiprows=0, dtype=str)
+        with st.spinner('Carregando IE03 SAP...'):
+            SAP_EQP = pd.read_excel(uploaded_file0, sheet_name="IE03", skiprows=0, dtype=str)
+        with st.spinner('Carregando IA39 SAP...'):
+            SAP_TL = pd.read_excel(uploaded_file0, sheet_name="IA39", skiprows=0, dtype=str)
+        with st.spinner('Carregando IP18 SAP...'):
+            SAP_ITEM = pd.read_excel(uploaded_file0, sheet_name="IP18", skiprows=0, dtype=str)
+        with st.spinner('Carregando IP24 SAP...'):
+            SAP_PMI = pd.read_excel(uploaded_file0, sheet_name="IP24", skiprows=0, dtype=str)
+            SAP_PMI['CONCAT CENTRO_DESC'] = SAP_PMI["Planning Plant"].map(str, na_action=None) + SAP_PMI["Maintenance Plan Desc"].map(str, na_action='ignore')
+            SAP_PMI['CONCAT TL_EQP'] = np.where(  # Incluído 05/06/2024
+                SAP_PMI['Equipment'].notna(),  # condição: se 'Equipment' não for NaN
+                SAP_PMI["Group"].map(str) + SAP_PMI["Equipment"].map(str),  # se verdadeiro: group + equipment
+                SAP_PMI["Group"].map(str) + SAP_PMI["Functional Location"].map(str)  # se falso: group + functional location
+            )
             SAP_PMI = pd.DataFrame(SAP_PMI)
-            st.session_state.SAP_PMI = SAP_PMI
-        SAP_PMI = st.session_state['SAP_PMI']
-    except:
-        pass
+        with st.spinner('Carregando Centros de Trabalho SAP...'):
+            SAP_CTPM = pd.read_excel(uploaded_file0, sheet_name="CTPM", skiprows=0, dtype=str)
+        with st.spinner('Carregando Materiais SAP...'):
+            SAP_MATERIAIS = pd.read_excel(uploaded_file0, sheet_name="MATERIAIS", skiprows=0, dtype=str)
+            SAP_MATERIAIS.dropna(subset='Material', inplace=True)
+            SAP_MATERIAIS.reset_index(drop=True, inplace=True)
 
-with st.spinner('Carregando Equipamentos SAP...'):
-    carregar_equipamentos()
-with st.spinner('Carregando Task Lists SAP...'):
-    carregar_task_lists()
-with st.spinner('Carregando Planos SAP...'):
-    carregar_planos()
+            st.session_state.SAP_EQP_N6 = SAP_EQP_N6
+            st.session_state.SAP_EQP = SAP_EQP
+            st.session_state.SAP_TL = SAP_TL
+            st.session_state.SAP_ITEM = SAP_ITEM
+            st.session_state.SAP_PMI = SAP_PMI
+            st.session_state.SAP_MATERIAIS = SAP_MATERIAIS
+            st.session_state.SAP_CTPM = SAP_CTPM
+    else:
+        SAP_EQP_N6 = st.session_state['SAP_EQP_N6']
+        SAP_EQP = st.session_state['SAP_EQP']
+        SAP_TL = st.session_state['SAP_TL']
+        SAP_ITEM = st.session_state['SAP_ITEM']
+        SAP_PMI = st.session_state['SAP_PMI']
+        SAP_CTPM = st.session_state['SAP_CTPM']
+        SAP_MATERIAIS = st.session_state['SAP_MATERIAIS']
 
 #*-*-*-*-OK ACIMA
 
@@ -163,7 +165,7 @@ with st.spinner('Carregando Planos SAP...'):
 #   SETUP
 #   CONCLUIR EDIÇÃO AQUI PARA PEGAR CERTO O ARQUIVO DE UPLOAD:
 uploaded_file = st.file_uploader("Carregar planilha 'Op_padrao'")
-if uploaded_file is not None:
+if uploaded_file is not None and uploaded_file0 is not None:
 
     with st.spinner('Carregando Op_padrao...'):
 
@@ -604,6 +606,8 @@ if uploaded_file is not None:
                 if str(df['ROTA?'][i]) == 'SIM':
                     df['TASK LIST'][i] = df['TASK LIST_PARCIAL'][i] + ' ' + df['DESC SISTEMAS / ETAPAS PROCESS'][
                         i] + ' ' + df['LINHAS / DIAG / SUB PROCESS'][i]
+                if str(df['ROTA?'][i]) == 'PERSONALIZADO':
+                    df['TASK LIST'][i] = df['TASK LIST_PARCIAL'][i]
             ##
 
             df = df.drop('TASK LIST_PARCIAL', axis=1)
@@ -731,7 +735,7 @@ if uploaded_file is not None:
 
         for i in range(len(df['ROTA?'])):
 
-            if df['ROTA?'][i] == 'SIM' or df['ROTA?'][i] == 'PERSONALIZADO':
+            if df['ROTA?'][i] == 'SIM':
                 df_tl['ID N6/N5'][i] = df['LI_N5'][i]
                 df_tl['ID SAP N6/N5'][i] = np.nan
                 df_tl['N6/N5'][i] = df['DESC SISTEMAS / ETAPAS PROCESS'][i]
@@ -754,9 +758,41 @@ if uploaded_file is not None:
                 df_tl['N6/N5'][i] = df['EQUIPAMENTO PRINCIPAL'][i]
                 df_tl['ID EQUIP OP'][i] = np.nan
                 df_tl['EQUIPAMENTO OP'][i] = np.nan
+                if isinstance(df['Tipo OP Padrão N6'][i], str):
+                    df_tl['ID EQUIP OP'][i] = df['NR_TECNICO_N6'][i]
+                    df_tl['ID SAP EQUIP OP'][i] = df['ID_SAP_N6'][i]
+                    df_tl['EQUIPAMENTO OP'][i] = df['EQUIPAMENTO PRINCIPAL'][i]
+                elif isinstance(df['Tipo OP Padrão N7'][i], str):
+                    df_tl['ID EQUIP OP'][i] = df['NR_TECNICO_N7'][i]
+                    df_tl['ID SAP EQUIP OP'][i] = df['ID_SAP_N7'][i]
+                    df_tl['EQUIPAMENTO OP'][i] = df['SISTEMA FUNCIONAL / CONJUNTO'][i]
+                elif isinstance(df['Tipo OP Padrão N8'][i], str):
+                    df_tl['ID EQUIP OP'][i] = df['NR_TECNICO_N8'][i]
+                    df_tl['ID SAP EQUIP OP'][i] = df['ID_SAP_N8'][i]
+                    df_tl['EQUIPAMENTO OP'][i] = df['EQUIPAMENTO FUNCIONAL / SUB-CONJUNTO'][i]
+
 
         #
-
+        
+        # LOCAL DE INSTALAÇÃO PARA ROTA PERSONALIZADA:
+        
+        for i in range(len(df['ROTA?'])):   # *********** ADICIONADO 24/05/2024
+        
+          if df['ROTA?'][i] == 'PERSONALIZADO':
+            df__copia = df[df['TASK LIST'] == df_tl['TASK LIST'][i]].copy()
+            print(df__copia)
+            if len(df__copia.drop_duplicates( subset = ['LI_N5'] ).reset_index(drop = True)) == 1:
+              df_tl['ID N6/N5'][i] = df['LI_N5'][i]
+            elif len(df__copia.drop_duplicates( subset = ['LI_N4'] ).reset_index(drop = True)) == 1:
+              df_tl['ID N6/N5'][i] = df['LI_N4'][i]
+            elif len(df__copia.drop_duplicates( subset = ['LI_N3'] ).reset_index(drop = True)) == 1:
+              df_tl['ID N6/N5'][i] = df['LI_N3'][i]
+            elif len(df__copia.drop_duplicates( subset = ['LI_N2'] ).reset_index(drop = True)) == 1:
+              df_tl['ID N6/N5'][i] = df['LI_N2'][i]
+            else:
+              df_tl['ID N6/N5'][i] = 'ERRO: EQUIPAMENTOS DE SETORES (IND, MOI, ETC) DIFERENTES PRESENTES NA MESMA ROTA.'
+        #
+        
         # Ordenando 'TASK LIST' em ordem alfabética:
 
         df_tl = df_tl.sort_values(by=['TASK LIST', 'N6/N5', 'ID SAP N6'])
@@ -848,16 +884,16 @@ if uploaded_file is not None:
             'Local de instalação': [],
             'LI_N3': []
         }
-
-        df_1 = df_tl.drop_duplicates(subset=['TASK LIST', 'N6/N5'], keep='last').reset_index(drop=True)
+        df_1 = df_tl.copy()   # *********** ALTERADO 24/05/2024
+        df_1 = df_1.drop_duplicates( subset = ['TASK LIST','EQUIPAMENTO OP'], keep = 'last').reset_index(drop = True)    # ALTERADO: O CABEÇALHO PUXAVA SÓ O EQP PRINCIPAL
         # df_1 = df_tl.drop_duplicates( subset = ['TASK LIST','N6/N5'], keep = 'last')
         # df_1 = df_1.sort_values(by=['Índices'])
         # df_1 = df_1.reset_index(drop=True)
 
         indice = 0
         for i in range(len(df_1['LI_N3'])):
-            if i > 0 and df_1['TASK LIST'][i] == df_1['TASK LIST'][i - 1] and df_1['ID SAP N6/N5'][i] == \
-                    df_1['ID SAP N6/N5'][i - 1]:
+            if i > 0 and df_1['TASK LIST'][i] == df_1['TASK LIST'][i - 1] and df_1['ID SAP EQUIP OP'][i] == \
+                    df_1['ID SAP EQUIP OP'][i - 1]:
                 continue
 
             df_cabecalho_eqp['Chave do grupo de listas de tarefas*'].append(num_carga + indice)
@@ -883,8 +919,8 @@ if uploaded_file is not None:
                 str(df_cabecalho_eqp['Chave do grupo de listas de tarefas*'][-1]) + '_' + str(
                     df_cabecalho_eqp['Contador de grupos*'][-1]))
             if str(df_1['ROTA?'][i]) == 'NAO':
-                df_cabecalho_eqp['Equipamento'].append(df_1['N6/N5'][i])
-                df_cabecalho_eqp['ID_SAP'].append(df_1['ID SAP N6/N5'][i])
+                df_cabecalho_eqp['Equipamento'].append(df_1['EQUIPAMENTO OP'][i])
+                df_cabecalho_eqp['ID_SAP'].append(df_1['ID SAP EQUIP OP'][i])
                 df_cabecalho_eqp['Local de instalação'].append(np.nan)
             else:
                 df_cabecalho_eqp['Equipamento'].append(np.nan)
@@ -943,8 +979,11 @@ if uploaded_file is not None:
             'Texto descritivo de operação': [],
             'NC?': []
         }
-
-        df_2 = df_tl.drop_duplicates(subset=['TASK LIST', 'OPERAÇÃO: TEXTO CURTO', 'ID SAP EQUIP OP', 'EQUIPAMENTO OP'],
+        df_2 = df_tl.copy()   # *********** ALTERADO 24/05/2024
+        df_2['ID EQUIP OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['ID EQUIP OP'], np.nan)
+        df_2['ID SAP EQUIP OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['ID SAP EQUIP OP'], np.nan)
+        df_2['EQUIPAMENTO OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['EQUIPAMENTO OP'], np.nan)
+        df_2 = df_2.drop_duplicates(subset=['TASK LIST', 'OPERAÇÃO: TEXTO CURTO', 'ID SAP EQUIP OP', 'EQUIPAMENTO OP'],
                                      keep='last').reset_index(drop=True)
         # df_2 = df_tl.drop_duplicates( subset = ['TASK LIST','OPERAÇÃO: TEXTO CURTO'], keep = 'last')
         # df_2 = df_2.sort_values(by=['Índices'])
@@ -1023,9 +1062,7 @@ if uploaded_file is not None:
                 df_opativ['Descrição da operação'].append(df_2['OPERAÇÃO: TEXTO CURTO'][i])
                 # df_opativ['Fator de execução'].append(1 if 'FUNC' in df_2['TASK LIST'][i] else 0)
                 df_opativ['Fator de execução'].append(1)
-                df_opativ['NC?'].append(
-                    'NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('SIM') in str(df_2['ROTA?'][i]) else
-                    df_2['ID SAP EQUIP OP'][i])  # 'NA' SE EQP NÃO SUBIU
+                df_opativ['NC?'].append('NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('NAO') not in str(df_2['ROTA?'][i]) else df_2['ID SAP EQUIP OP'][i])   # 'NA' SE EQP NÃO SUBIU
 
                 # Checar se está dentro da lista das task list que não irão subir:
                 if df_2['TASK LIST'][i] in lista_nsubir:
@@ -1033,7 +1070,7 @@ if uploaded_file is not None:
                     df_opativ['Sequencial*'][-1] = 'INDICADO PARA NÃO SUBIR'
                 #
 
-                df_opativ['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i])
+                df_opativ['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i] if str('NAO') not in str(df_2['ROTA?'][i]) else np.nan)
                 df_opativ['Chave de cálculo'].append(2)
                 try:
                     df_opativ['Trabalho envolvido na atividade'].append(
@@ -1079,9 +1116,7 @@ if uploaded_file is not None:
                 df_opativ['Descrição da operação'].append(df_2['OPERAÇÃO: TEXTO CURTO'][i])
                 # df_opativ['Fator de execução'].append(1 if 'FUNC' in df_2['TASK LIST'][i] else 0)
                 df_opativ['Fator de execução'].append(1)
-                df_opativ['NC?'].append(
-                    'NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('SIM') in str(df_2['ROTA?'][i]) else
-                    df_2['ID SAP EQUIP OP'][i])  # 'NA' SE EQP NÃO SUBIU
+                df_opativ['NC?'].append('NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('NAO') not in str(df_2['ROTA?'][i]) else df_2['ID SAP EQUIP OP'][i])   # 'NA' SE EQP NÃO SUBIU
 
                 # Checar se está dentro da lista das task list que não irão subir:
                 if df_2['TASK LIST'][i] in lista_nsubir:
@@ -1089,7 +1124,7 @@ if uploaded_file is not None:
                     df_opativ['Sequencial*'][-1] = 'INDICADO PARA NÃO SUBIR'
                 #
 
-                df_opativ['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i])
+                df_opativ['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i] if str('NAO') not in str(df_2['ROTA?'][i]) else np.nan)
                 df_opativ['Chave de cálculo'].append(2)
                 try:
                     df_opativ['Trabalho envolvido na atividade'].append(
@@ -1312,11 +1347,18 @@ if uploaded_file is not None:
             'Texto descritivo de operação': [],
             'NC?': []
         }
-
-        num_carga = list(df_opativ[df_opativ.columns[0]])[-1] + 1
-
+        try:
+            num_carga = list(df_opativ[df_opativ.columns[0]])[-1] + 1
+        except:
+            num_carga = 0
+            
+        df_2 = df_tl.copy()   # *********** ALTERADO 24/05/2024
+        df_2['ID EQUIP OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['ID EQUIP OP'], np.nan)
+        df_2['ID SAP EQUIP OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['ID SAP EQUIP OP'], np.nan)
+        df_2['EQUIPAMENTO OP'] = np.where((df_2['ROTA?'] == 'SIM') | (df_2['ROTA?'] == 'PERSONALIZADO'), df_2['EQUIPAMENTO OP'], np.nan)
+        
         # df_2 = df_tl.sort_values(by=['TASK LIST','N6/N5'])
-        df_2 = df_tl.drop_duplicates(subset=['TASK LIST', 'OPERAÇÃO: TEXTO CURTO', 'ID SAP EQUIP OP', 'EQUIPAMENTO OP'],
+        df_2 = df_2.drop_duplicates(subset=['TASK LIST', 'OPERAÇÃO: TEXTO CURTO', 'ID SAP EQUIP OP', 'EQUIPAMENTO OP'],
                                      keep='last').reset_index(drop=True)
         # df_2 = df_tl.drop_duplicates( subset = ['TASK LIST','OPERAÇÃO: TEXTO CURTO'], keep = 'last')
         # df_2 = df_2.sort_values(by=['Índices'])
@@ -1356,9 +1398,7 @@ if uploaded_file is not None:
                 df_opativ_lub['Descrição da operação'].append(df_2['OPERAÇÃO: TEXTO CURTO'][i])
                 # df_opativ['Fator de execução'].append(1 if 'FUNC' in df_2['TASK LIST'][i] else 0)
                 df_opativ_lub['Fator de execução'].append(1)
-                df_opativ_lub['NC?'].append(
-                    'NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('SIM') in str(df_2['ROTA?'][i]) else
-                    df_2['ID SAP EQUIP OP'][i])
+                df_opativ_lub['NC?'].append('NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('NAO') not in str(df_2['ROTA?'][i]) else df_2['ID SAP EQUIP OP'][i])
 
                 # Checar se está dentro da lista das task list que não irão subir:
                 if df_2['TASK LIST'][i] in lista_nsubir:
@@ -1366,7 +1406,7 @@ if uploaded_file is not None:
                     df_opativ_lub['Sequencial*'][-1] = 'INDICADO PARA NÃO SUBIR'
                 #
 
-                df_opativ_lub['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i])
+                df_opativ_lub['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i] if str('NAO') not in str(df_2['ROTA?'][i]) else np.nan)
                 df_opativ_lub['Chave de cálculo'].append(2)
                 df_opativ_lub['Trabalho envolvido na atividade'].append(
                     int(df_2['DURAÇÃO (min)'][i]))  ## SOMAR TODAS AS SUBS
@@ -1428,9 +1468,7 @@ if uploaded_file is not None:
                 df_opativ_lub['Descrição da operação'].append(df_2['OPERAÇÃO: TEXTO CURTO'][i])
                 # df_opativ['Fator de execução'].append(1 if 'FUNC' in df_2['TASK LIST'][i] else 0)
                 df_opativ_lub['Fator de execução'].append(1)
-                df_opativ_lub['NC?'].append(
-                    'NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('SIM') in str(df_2['ROTA?'][i]) else
-                    df_2['ID SAP EQUIP OP'][i])  # 'NA' SE EQP NÃO SUBIU
+                df_opativ_lub['NC?'].append('NC' if pd.isna(df_2['ID SAP EQUIP OP'][i]) and str('NAO') not in str(df_2['ROTA?'][i]) else df_2['ID SAP EQUIP OP'][i])   # 'NA' SE EQP NÃO SUBIU
 
                 # Checar se está dentro da lista das task list que não irão subir:
                 if df_2['TASK LIST'][i] in lista_nsubir:
@@ -1438,7 +1476,7 @@ if uploaded_file is not None:
                     df_opativ_lub['Sequencial*'][-1] = 'INDICADO PARA NÃO SUBIR'
                 #
 
-                df_opativ_lub['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i])
+                df_opativ_lub['N do equipamento'].append(df_2['ID SAP EQUIP OP'][i] if str('NAO') not in str(df_2['ROTA?'][i]) else np.nan)
                 df_opativ_lub['Chave de cálculo'].append(2)
 
                 try:
@@ -1536,9 +1574,7 @@ if uploaded_file is not None:
                 str(df_cabecalho_lub['Chave do grupo de listas de tarefas*'][-1]) + '_' + str(
                     df_cabecalho_lub['Contador de grupos*'][-1]))
 
-            df_cabecalho_lub['NC?'].append(
-                'NC' if pd.isna(df_1['ID SAP EQUIP OP'][i]) and str('SIM') in df_1['ROTA?'][i] else
-                df_1['ID SAP EQUIP OP'][i])  # 'NA' SE EQP NÃO SUBIU
+            df_cabecalho_lub['NC?'].append('NC' if pd.isna(df_1['ID SAP EQUIP OP'][i]) and str('NAO') not in df_1['ROTA?'][i] else df_1['ID SAP EQUIP OP'][i])   # 'NA' SE EQP NÃO SUBIU
 
             # Checar se está dentro da lista das task list que não irão subir:
             if df_1['TASK LIST'][i] in lista_nsubir:
