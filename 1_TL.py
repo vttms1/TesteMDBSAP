@@ -1008,7 +1008,7 @@ if uploaded_file is not None and uploaded_file0 is not None:
 
         for i in range(len(df_2['LI_N3'])):
 
-            if 'CALI' in df_2['TASK LIST'][i][0:4] or 'LUB' in df_2['TASK LIST'][i][0:4']:
+            if 'CALI' in df_2['TASK LIST'][i][0:4] or 'LUB' in df_2['TASK LIST'][i][0:4]:
                 continue
 
             if i == 0 or df_2['TASK LIST'][i] != df_2['TASK LIST'][i - 1]:
