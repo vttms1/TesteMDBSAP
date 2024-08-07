@@ -348,27 +348,37 @@ if uploaded_file is not None and uploaded_file0 is not None:
                                 df.loc[i, 'Tipo OP Padrão N6'] = df_op['TEXTO TIPO EQUIPAMENTO'][j]
 
             ## N7
-            if isinstance(sistema_funcional, str) and not isinstance(df['Tipo OP Padrão N7'][i],
-                                                                     str):  # Saber se já está classificado
-                obj_n7 = df['TIP. OBJETO_N7'][i]
+            
+            if isinstance(sistema_funcional, str) and not isinstance(df['Tipo OP Padrão N7'][i], str):  # Saber se já está classificado
+                if 'TIP. OBJETO_N7' in df.columns:
+                    try:
+                        obj_n7 = df['TIP. OBJETO_N7'].iloc[i]  # Usando .iloc para acesso por índice
+                    except IndexError:
+                        print(f"O índice {i} está fora dos limites do DataFrame.")
+                        obj_n7 = None
+                else:
+                    print("A coluna 'TIP. OBJETO_N7' não foi encontrada no DataFrame.")
+                    obj_n7 = None
+        
                 desc = sistema_funcional + " " + equipamento_principal  # descrição do sistema + equipamento para checar variação
                 n4n5 = sistemas_etapas_process + " " + n4  # descrição da etapa (n5) + n4 para checar variação
-
+        
                 for j in range(len(df_op)):
-                    tipo_equipamento = str(df_op['TIPO EQUIPAMENTO'][j])
-                    variacao_desc = df_op['VARIACAO DESC'][j]
-                    variacao_n4n5 = df_op['VARIACAO N4/N5'][j]
-
+                    tipo_equipamento = str(df_op['TIPO EQUIPAMENTO'].iloc[j])
+                    variacao_desc = df_op['VARIACAO DESC'].iloc[j]
+                    variacao_n4n5 = df_op['VARIACAO N4/N5'].iloc[j]
+            
                     if isinstance(tipo_equipamento, str) and isinstance(obj_n7, str):
                         if tipo_equipamento in obj_n7:
                             if check_variacao(desc, variacao_desc) and check_variacao(n4n5, variacao_n4n5):
-                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'][j]
+                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'].iloc[j]
                             elif check_variacao(desc, variacao_desc) and not isinstance(variacao_n4n5, str):
-                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'][j]
+                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'].iloc[j]
                             elif check_variacao(n4n5, variacao_n4n5) and not isinstance(variacao_desc, str):
-                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'][j]
+                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'].iloc[j]
                             elif not isinstance(variacao_desc, str) and not isinstance(variacao_n4n5, str):
-                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'][j]
+                                df.loc[i, 'Tipo OP Padrão N7'] = df_op['TEXTO TIPO EQUIPAMENTO'].iloc[j]
+
 
             ## N8
             if isinstance(equipamento_funcional, str) and not isinstance(df['Tipo OP Padrão N8'][i],
