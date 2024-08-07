@@ -1025,7 +1025,7 @@ if uploaded_file is not None and uploaded_file0 is not None:
                     df_opativ['Trabalho envolvido na atividade'].append(0)  ## SOMAR TODAS AS SUBS
                 df_opativ['Unidade para trabalho (formato ISO)'].append('MIN')
                 df_opativ['Tipo de atividade'].append('MANUT')
-                df_opativ['Número de capacidades necessárias'].append(int(df_2['OPERADORES'][i]))
+                df_opativ.loc['Número de capacidades necessárias'] = int(df_2['OPERADORES'][i])
                 df_opativ['Duração normal da atividade'].append(
                     df_opativ['Trabalho envolvido na atividade'][-1] * df_opativ['Número de capacidades necessárias'][
                         -1])
