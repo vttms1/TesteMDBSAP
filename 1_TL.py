@@ -1001,54 +1001,86 @@ if uploaded_file is not None and uploaded_file0 is not None:
 
         indice = -1
 
+        # Supondo que df_opativ já tenha sido criado e df_2 também
+
+        indice = 0  # Inicializa o índice
+        num_carga = 1  # Exemplo de valor inicial, ajuste conforme necessário
+
         for i in range(len(df_2['LI_N3'])):
 
-            if 'CALI' in df_2['TASK LIST'][i][0:4] or 'LUB' in df_2['TASK LIST'][i][0:4]:
+            if 'CALI' in df_2['TASK LIST'][i][0:4] or 'LUB' in df_2['TASK LIST'][i][0:4']:
                 continue
 
             if i == 0 or df_2['TASK LIST'][i] != df_2['TASK LIST'][i - 1]:
+                indice += 1
 
-                indice = indice + 1
+                # Inicializa os valores das colunas
+                chave_grupo = num_carga + indice
+                contador_grupos = 1
+                numero_atividade = '0010'
+                sequencial = indice
+                sub_operacao = np.nan
+                centro_trabalho = df_2['CT PM'][i]
+                centro = df_2['LI_N3'][i][0:4]
+                chave_controle = 'PM01'
+                descricao_operacao = df_2['TASK LIST'][i]
+                fator_execucao = 1
+                n_equipamento = np.nan
+                nc = np.nan
+                chave_calculo = 2
 
-                # Operação de cabeçalho
-                df_opativ['Chave do grupo de listas de tarefas*'].append(num_carga + indice)
-                i_cabecalho = df_opativ['Chave do grupo de listas de tarefas*'].index(
-                    num_carga + indice)  # Salvar índice do cabeçalho pra somar tempos
-
-                df_opativ['Contador de grupos*'].append(1)
-                df_opativ['Número da atividade*'].append('0010')
-                df_opativ['Sequencial*'].append(indice)
-                df_opativ['Sub Operacao'].append(np.nan)
-                df_opativ['Centro de trabalho'].append(df_2['CT PM'][i])
-                df_opativ['Centro'].append(df_2['LI_N3'][i][0:4])
-                df_opativ['Chave de controle'].append('PM01')
-                df_opativ['Descrição da operação'].append(df_2['TASK LIST'][i])
-                # df_opativ['Fator de execução'].append(1 if 'FUNC' in df_2['TASK LIST'][i] else 0)
-                df_opativ['Fator de execução'].append(1)
-                df_opativ['N do equipamento'].append(np.nan)
-                df_opativ['NC?'].append(np.nan)
-                df_opativ['Chave de cálculo'].append(2)
                 try:
-                    df_opativ['Trabalho envolvido na atividade'].append(
-                        int(df_2['DURAÇÃO (min)'][i]))  ## SOMAR TODAS AS SUBS
+                    trabalho_envolvido = int(df_2['DURAÇÃO (min)'][i])
                 except:
-                    df_opativ['Trabalho envolvido na atividade'].append(0)  ## SOMAR TODAS AS SUBS
-                df_opativ['Unidade para trabalho (formato ISO)'].append('MIN')
-                df_opativ['Tipo de atividade'].append('MANUT')
-                df_opativ.loc['Número de capacidades necessárias'] = int(df_2['OPERADORES'][i])
-                df_opativ['Duração normal da atividade'].append(
-                    df_opativ['Trabalho envolvido na atividade'][-1] * df_opativ['Número de capacidades necessárias'][
-                        -1])
-                df_opativ['Duração/unidade normal (formato ISO)'].append('MIN')
-                df_opativ['Porcentagem de trabalho'].append(100)
-                if str(0) in str(df_2['ESTADO MAQ'][i]):
-                    df_opativ['Texto descritivo de operação'].append(
-                        'ANTES DE INICIAR DEVE BLOQUEAR O EQUIPAMENTO, REALIZAR A APR E UTILIZAR TODOS OS EPIs (LUVAS, LUVEX, ÓCULOS SEG. E CAPACETE). TODAS AS NORMAS DE SEGURANÇA DO ALIMENTO E QUALIDADE DEVEM SER SEGUIDAS. \nAPÓS CONCLUIR AS ATIVIDADES DEVE SER GARANTIDA A LIMPEZA DA ÁREA, DO EQUIPAMENTO E RETIRADA TODAS FERRAMENTAS E RESÍDUOS CONTAMINANTES. PARA EQUIPAMENTOS CRÍTICOS, É EXIGIDA A LIBERAÇÃO DA QUALIDADE.')
-                else:
-                    df_opativ['Texto descritivo de operação'].append(
-                        'É CRUCIAL UTILIZAR TODOS OS EPIs (LUVEX, LUVAS, ÓCULOS SEG. E CAPACETE) E SEMPRE MANTER A DISTANCIA DAS PARTES MÓVEIS DOS EQUIPAMENTOS.')
+                    trabalho_envolvido = 0
+        
+                unidade_trabalho = 'MIN'
+                tipo_atividade = 'MANUT'
+        
+                try:
+                    numero_capacidades = int(df_2['OPERADORES'][i])
+                except:
+                    numero_capacidades = 0
 
-                i_sub = 10
+                duracao_normal_atividade = trabalho_envolvido * numero_capacidades
+                duracao_unidade_normal = 'MIN'
+                porcentagem_trabalho = 100
+
+                if str(0) in str(df_2['ESTADO MAQ'][i]):
+                    texto_descritivo = (
+                        'ANTES DE INICIAR DEVE BLOQUEAR O EQUIPAMENTO, REALIZAR A APR E UTILIZAR TODOS OS EPIs (LUVAS, LUVEX, ÓCULOS SEG. E CAPACETE). TODAS AS NORMAS DE SEGURANÇA DO ALIMENTO E QUALIDADE DEVEM SER SEGUIDAS. \nAPÓS CONCLUIR AS ATIVIDADES DEVE SER GARANTIDA A LIMPEZA DA ÁREA, DO EQUIPAMENTO E RETIRADA TODAS FERRAMENTAS E RESÍDUOS CONTAMINANTES. PARA EQUIPAMENTOS CRÍTICOS, É EXIGIDA A LIBERAÇÃO DA QUALIDADE.'
+                    )
+                else:
+                    texto_descritivo = (
+                        'É CRUCIAL UTILIZAR TODOS OS EPIs (LUVEX, LUVAS, ÓCULOS SEG. E CAPACETE) E SEMPRE MANTER A DISTANCIA DAS PARTES MÓVEIS DOS EQUIPAMENTOS.'
+                    )
+
+                # Adiciona os dados ao DataFrame df_opativ
+                df_opativ = df_opativ.append({
+                    'Chave do grupo de listas de tarefas*': chave_grupo,
+                    'Contador de grupos*': contador_grupos,
+                    'Número da atividade*': numero_atividade,
+                    'Sequencial*': sequencial,
+                    'Sub Operacao': sub_operacao,
+                    'Centro de trabalho': centro_trabalho,
+                    'Centro': centro,
+                    'Chave de controle': chave_controle,
+                    'Descrição da operação': descricao_operacao,
+                    'Fator de execução': fator_execucao,
+                    'N do equipamento': n_equipamento,
+                    'NC?': nc,
+                    'Chave de cálculo': chave_calculo,
+                    'Trabalho envolvido na atividade': trabalho_envolvido,
+                    'Unidade para trabalho (formato ISO)': unidade_trabalho,
+                    'Tipo de atividade': tipo_atividade,
+                    'Número de capacidades necessárias': numero_capacidades,
+                    'Duração normal da atividade': duracao_normal_atividade,
+                    'Duração/unidade normal (formato ISO)': duracao_unidade_normal,
+                    'Porcentagem de trabalho': porcentagem_trabalho,
+                    'Texto descritivo de operação': texto_descritivo
+                }, ignore_index=True)
+
+        i_sub = 10
 
                 ###
 
